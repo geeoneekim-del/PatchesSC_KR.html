@@ -20,6 +20,14 @@ h1{margin:0;font-size:2.3em;font-weight:800;letter-spacing:-.02em;line-height:1.
 .stat b{color:var(--cyan);font-weight:800}
 .tools{display:flex;align-items:center;gap:8px;margin:0 0 30px}
 .tools span{font-size:.82em;color:var(--dim);margin-right:2px}
+.search-wrap{display:flex;align-items:center;gap:10px;margin:0 0 30px}
+.search-wrap input{flex:1;max-width:420px;font:inherit;font-size:.92em;color:var(--ink);
+ background:#0d1826;border:1px solid var(--line);border-radius:4px;padding:9px 14px;
+ outline:none;transition:.14s}
+.search-wrap input:focus{border-color:var(--cyan)}
+.search-wrap input::placeholder{color:var(--dim)}
+.qcount{font-size:.82em;color:var(--dim);font-family:ui-monospace,Consolas,monospace;white-space:nowrap}
+.unit.hide,.wrap>section.hide{display:none}
 .tb{appearance:none;cursor:pointer;font:inherit;font-size:.85em;font-weight:700;
  color:var(--dim);background:#12202f;border:1px solid var(--line);
  padding:7px 16px;border-radius:2px;transition:.14s}
@@ -87,6 +95,10 @@ footer b{color:var(--ink);font-weight:700}
  <button class="tb" data-fs="1.15" aria-pressed="false">크게</button>
  <button class="tb" data-fs="1.32" aria-pressed="false">더 크게</button>
 </div>
+<div class="search-wrap">
+ <input type="search" id="q" placeholder="유닛명 또는 내용 검색 (예: 화염기갑병, 방어력)">
+ <span class="qcount" id="qcount"></span>
+</div>
 <div class="tools">
  <span>이미지 저장</span>
  <button class="tb" id="opt-bg" aria-pressed="false">배경 있음</button>
@@ -114,6 +126,27 @@ footer b{color:var(--ink);font-weight:700}
    document.documentElement.style.setProperty('--fs',b.dataset.fs);
    bs.forEach(function(x){x.setAttribute('aria-pressed', x===b?'true':'false');});
  });});
+})();
+(function(){
+ var q = document.getElementById('q');
+ if (!q) return;
+ var qc = document.getElementById('qcount');
+ var units = [].slice.call(document.querySelectorAll('.unit'));
+ var secs = [].slice.call(document.querySelectorAll('.wrap > section'));
+ function run(){
+   var term = q.value.trim().toLowerCase();
+   var shown = 0;
+   units.forEach(function(u){
+     var hit = !term || u.textContent.toLowerCase().indexOf(term) !== -1;
+     u.classList.toggle('hide', !hit);
+     if (hit) shown++;
+   });
+   secs.forEach(function(s){
+     s.classList.toggle('hide', !s.querySelector('.unit:not(.hide)'));
+   });
+   qc.textContent = term ? (shown + '개 카드') : '';
+ }
+ q.addEventListener('input', run);
 })();
 
 (function(){
