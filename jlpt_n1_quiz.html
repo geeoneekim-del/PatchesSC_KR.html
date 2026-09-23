@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JLPT N1 단어 퀴즈</title>
+<style>
+:root{--bg:#f6f7f9;--panel:#fff;--line:#dde2ea;--ink:#1b2330;--dim:#667389;
+ --accent:#3b6fe0;--accent-ink:#fff;--ok:#1f9d5a;--ok-bg:#e3f6ec;--ng:#d8453b;--ng-bg:#fdeceb}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+ --bg:#10141b;--panel:#1a202a;--line:#2d3644;--ink:#e8edf4;--dim:#98a4b6;
+ --accent:#6d9bff;--accent-ink:#0c1320;--ok:#4cc98a;--ok-bg:#15302a;--ng:#ff7a70;--ng-bg:#3a1f22}}
+:root[data-theme="dark"]{--bg:#10141b;--panel:#1a202a;--line:#2d3644;--ink:#e8edf4;--dim:#98a4b6;
+ --accent:#6d9bff;--accent-ink:#0c1320;--ok:#4cc98a;--ok-bg:#15302a;--ng:#ff7a70;--ng-bg:#3a1f22}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+ font-family:"Pretendard","Noto Sans KR","Hiragino Sans","Noto Sans JP","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif}
+main{max-width:640px;margin:0 auto;padding:16px 16px 48px}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+h1{font-size:1.2em;margin:0}
+nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+nav button,.btn{appearance:none;font:inherit;cursor:pointer;border:1px solid var(--line);
+ background:var(--panel);color:var(--ink);padding:9px 14px;border-radius:8px}
+nav button[aria-current="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+.btn:disabled{opacity:.5;cursor:default}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px}
+.card h2{font-size:1em;margin:0 0 10px}
+.muted{color:var(--dim);font-size:.9em}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+label.opt{display:flex;gap:6px;align-items:center;padding:6px 0}
+select,textarea{font:inherit;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px}
+textarea{width:100%;min-height:120px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.stat{background:var(--bg);border-radius:8px;padding:10px}
+.stat b{display:block;font-size:1.4em}
+.q-word{font-size:2.6em;text-align:center;margin:12px 0 4px;word-break:keep-all}
+.q-sub{text-align:center;min-height:1.4em;color:var(--dim)}
+.q-prompt{text-align:center;color:var(--dim);font-size:.9em}
+.choices{display:grid;gap:8px;margin-top:16px}
+.choice{appearance:none;font:inherit;font-size:1.1em;text-align:left;cursor:pointer;
+ padding:14px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.choice.ok{background:var(--ok-bg);border-color:var(--ok);color:var(--ok);font-weight:700}
+.choice.ng{background:var(--ng-bg);border-color:var(--ng);color:var(--ng)}
+.progress{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:8px}
+.progress i{display:block;height:100%;background:var(--accent);transition:width .2s}
+.feedback{margin-top:14px;padding:12px;border-radius:10px;background:var(--bg)}
+table{width:100%;border-collapse:collapse;font-size:.92em}
+td,th{padding:8px 4px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.hidden{display:none}
+.icon-btn{appearance:none;background:none;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font:inherit}
+</style></head>
+<body>
+<main>
+<header>
+  <h1>JLPT N1 단어 퀴즈</h1>
+  <button class="icon-btn" id="themeBtn" title="화면 테마 바꾸기">테마</button>
+</header>
+<nav id="nav">
+  <button data-view="home" aria-current="true">홈</button>
+  <button data-view="wrong">오답 노트</button>
+  <button data-view="data">단어 불러오기</button>
+</nav>
+
+<!-- 홈 -->
+<section id="view-home">
+  <div class="card">
+    <h2>학습 현황</h2>
+    <div class="stats" id="stats"></div>
+  </div>
+  <div class="card">
+    <h2>퀴즈 설정</h2>
+    <div class="row" style="margin-bottom:8px">
+      <span>문제 수</span>
+      <select id="optCount"><option>10</option><option selected>20</option><option>50</option></select>
+      <span>출제 범위</span>
+      <select id="optScope">
+        <option value="due" selected>복습할 단어 우선</option>
+        <option value="new">새 단어만</option>
+        <option value="all">전체 무작위</option>
+      </select>
+      <span>품사</span>
+      <select id="optPos"><option value="">전체</option></select>
+    </div>
+    <label class="opt"><input type="checkbox" class="optType" value="meaning" checked> 한자 → 뜻 고르기</label>
+    <label class="opt"><input type="checkbox" class="optType" value="reading" checked> 한자 → 읽는 법 고르기</label>
+    <label class="opt"><input type="checkbox" class="optType" value="reverse"> 뜻 → 한자 고르기</label>
+    <label class="opt"><input type="checkbox" id="optTts"> 문제마다 발음 자동 재생</label>
+    <div class="row" style="margin-top:10px">
+      <button class="btn primary" id="startBtn">퀴즈 시작</button>
+    </div>
+    <p class="muted" id="homeMsg"></p>
+  </div>
+</section>
+
+<!-- 퀴즈 -->
+<section id="view-quiz" class="hidden">
+  <div class="card">
+    <div class="progress"><i id="bar"></i></div>
+    <div class="row" style="justify-content:space-between">
+      <span class="muted" id="qCount"></span>
+      <button class="icon-btn" id="speakBtn">🔊 발음</button>
+    </div>
+    <div class="q-prompt" id="qPrompt"></div>
+    <div class="q-word" id="qWord" lang="ja"></div>
+    <div class="q-sub" id="qSub" lang="ja"></div>
+    <div class="choices" id="choices"></div>
+    <div class="feedback hidden" id="feedback"></div>
+    <div class="row" style="margin-top:12px;justify-content:space-between">
+      <button class="btn" id="quitBtn">그만하기</button>
+      <button class="btn primary hidden" id="nextBtn">다음 ▶</button>
+    </div>
+  </div>
+</section>
+
+<!-- 결과 -->
+<section id="view-result" class="hidden">
+  <div class="card">
+    <h2>결과</h2>
+    <p id="resultSummary" style="font-size:1.2em"></p>
+    <table id="resultTable"></table>
+    <div class="row" style="margin-top:12px">
+      <button class="btn primary" id="retryWrongBtn">틀린 문제 다시 풀기</button>
+      <button class="btn" id="homeBtn">홈으로</button>
+    </div>
+  </div>
+</section>
+
+<!-- 오답 노트 -->
+<section id="view-wrong" class="hidden">
+  <div class="card">
+    <h2>오답 노트</h2>
+    <p class="muted">틀린 적이 있는 단어입니다. 틀린 횟수가 많은 순서로 보여 줍니다.</p>
+    <div class="row" style="margin-bottom:8px"><button class="btn primary" id="wrongQuizBtn">오답만 퀴즈</button></div>
+    <table id="wrongTable"></table>
+  </div>
+</section>
+
+<!-- 데이터 -->
+<section id="view-data" class="hidden">
+  <div class="card">
+    <h2>단어 파일 불러오기</h2>
+    <p class="muted">단어 데이터는 이 기기의 브라우저에만 저장되며, 어디에도 올라가지 않습니다.</p>
+    <p class="muted">CSV 형식: <code>단어,읽기,뜻,품사,예문,예문뜻</code> (품사부터는 비워도 됩니다. 첫 줄이 제목 줄이어도 괜찮습니다.) JSON 배열도 불러올 수 있습니다.</p>
+    <div class="row">
+      <input type="file" id="fileInput" accept=".csv,.tsv,.txt,.json">
+    </div>
+    <p class="muted" style="margin-top:12px">또는 아래에 직접 붙여 넣기:</p>
+    <textarea id="pasteArea" placeholder="把握,はあく,파악,명사&#10;斡旋,あっせん,알선,명사"></textarea>
+    <div class="row" style="margin-top:8px">
+      <label class="opt"><input type="radio" name="mode" value="merge" checked> 기존 단어에 추가</label>
+      <label class="opt"><input type="radio" name="mode" value="replace"> 기존 단어 전부 교체</label>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn primary" id="pasteBtn">붙여 넣은 내용 불러오기</button>
+      <button class="btn" id="sampleBtn">예시 단어 넣기</button>
+    </div>
+    <p id="dataMsg"></p>
+  </div>
+  <div class="card">
+    <h2>저장된 데이터 관리</h2>
+    <p class="muted" id="dataInfo"></p>
+    <div class="row">
+      <button class="btn" id="exportBtn">학습 기록 백업(내보내기)</button>
+      <label class="btn">백업 복원<input type="file" id="restoreInput" accept=".json" class="hidden"></label>
+      <button class="btn" id="resetProgressBtn">학습 기록만 초기화</button>
+      <button class="btn" id="clearAllBtn">전체 삭제</button>
+    </div>
+  </div>
+</section>
+</main>
+
+<script>
+(function(){
+'use strict';
+var KEY_WORDS='jlptN1.words', KEY_PROG='jlptN1.progress', KEY_THEME='jlptN1.theme';
+// 복습 간격(일): 상자 0~5
+var INTERVALS=[0,1,3,7,14,30];
+var DAY=86400000;
+
+function load(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}}
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+var words=load(KEY_WORDS,[]);      // [{word,reading,meaning,pos,example,exampleKo}]
+var prog=load(KEY_PROG,{});        // word -> {box,due,right,wrong}
+
+/* ---------- 테마 ---------- */
+var theme=load(KEY_THEME,'');
+function applyTheme(){if(theme)document.documentElement.setAttribute('data-theme',theme);else document.documentElement.removeAttribute('data-theme');}
+applyTheme();
+$('themeBtn').onclick=function(){
+  var dark=theme?theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  theme=dark?'light':'dark';save(KEY_THEME,theme);applyTheme();
+};
+
+/* ---------- 화면 전환 ---------- */
+var views=['home','quiz','result','wrong','data'];
+function show(v){
+  views.forEach(function(x){$('view-'+x).classList.toggle('hidden',x!==v);});
+  [].forEach.call(document.querySelectorAll('#nav button'),function(b){b.setAttribute('aria-current',b.dataset.view===v?'true':'false');});
+  if(v==='home')renderHome();
+  if(v==='wrong')renderWrong();
+  if(v==='data')renderDataInfo();
+  window.scrollTo(0,0);
+}
+[].forEach.call(document.querySelectorAll('#nav button'),function(b){b.onclick=function(){if(session&&!confirm('진행 중인 퀴즈를 그만할까요?'))return;session=null;show(b.dataset.view);};});
+
+/* ---------- 홈 ---------- */
+function p(w){return prog[w.word]||null;}
+function isDue(w,now){var r=p(w);return r&&r.due<=now;}
+function renderHome(){
+  var now=Date.now(),learned=0,mastered=0,due=0,right=0,total=0;
+  words.forEach(function(w){var r=p(w);if(!r)return;learned++;if(r.box>=4)mastered++;if(r.due<=now)due++;right+=r.right;total+=r.right+r.wrong;});
+  var items=[['전체 단어',words.length],['학습한 단어',learned],['외운 단어',mastered],['오늘 복습',due],['정답률',total?Math.round(right/total*100)+'%':'-']];
+  $('stats').innerHTML=items.map(function(i){return '<div class="stat"><span class="muted">'+i[0]+'</span><b>'+i[1]+'</b></div>';}).join('');
+  $('homeMsg').textContent=words.length<4?'단어가 4개 이상 필요합니다. "단어 불러오기"에서 단어 파일을 먼저 불러와 주세요.':'';
+  $('startBtn').disabled=words.length<4;
+  var sel=$('optPos'),cur=sel.value,cnt={};
+  words.forEach(function(w){if(w.pos)cnt[w.pos]=(cnt[w.pos]||0)+1;});
+  sel.innerHTML='<option value="">전체</option>'+Object.keys(cnt).map(function(k){return '<option value="'+esc(k)+'">'+esc(k)+' ('+cnt[k]+')</option>';}).join('');
+  if(cnt[cur])sel.value=cur;
+}
+
+/* ---------- 문제 만들기 ---------- */
+function pickWords(n,scope,pos){
+  var now=Date.now();
+  var base=pos?words.filter(function(w){return w.pos===pos;}):words;
+  var fresh=base.filter(function(w){return !p(w);});
+  if(scope==='new')return shuffle(fresh).slice(0,n);
+  if(scope==='all')return shuffle(base.slice()).slice(0,n);
+  // 복습할 단어 → 새 단어 → 나머지 순서
+  var due=shuffle(base.filter(function(w){return isDue(w,now);}));
+  due.sort(function(a,b){return p(a).box-p(b).box;});
+  var rest=shuffle(base.filter(function(w){return p(w)&&!isDue(w,now);}));
+  return due.concat(shuffle(fresh),rest).slice(0,n);
+}
+function field(w,type){return type==='meaning'?w.meaning:type==='reading'?w.reading:w.word;}
+// 헷갈리는 오답: 같은 품사, 한자/읽기가 겹치는 단어에 가중치
+function similarity(a,b,type){
+  var s=Math.random();
+  if(a.pos&&a.pos===b.pos)s+=1;
+  var src=type==='reading'?a.reading:a.word, dst=type==='reading'?b.reading:b.word;
+  for(var i=0;i<src.length;i++)if(dst.indexOf(src[i])>=0)s+=0.7;
+  if(src.length===dst.length)s+=0.3;
+  return s;
+}
+function makeQuestion(w,type){
+  var answer=field(w,type);
+  var pool=words.filter(function(x){var f=field(x,type);return x!==w&&f&&f!==answer;});
+  pool.sort(function(a,b){return similarity(w,b,type)-similarity(w,a,type);});
+  var seen={},wrong=[];
+  pool.slice(0,12).concat(shuffle(pool.slice(12))).forEach(function(x){var f=field(x,type);if(wrong.length<3&&!seen[f]){seen[f]=1;wrong.push(f);}});
+  return {w:w,type:type,answer:answer,choices:shuffle(wrong.concat([answer]))};
+}
+
+/* ---------- 퀴즈 진행 ---------- */
+var session=null;
+function startQuiz(list){
+  var types=[].filter.call(document.querySelectorAll('.optType'),function(c){return c.checked;}).map(function(c){return c.value;});
+  if(!types.length){alert('퀴즈 유형을 하나 이상 골라 주세요.');return;}
+  var qs=[];
+  list.forEach(function(w){
+    var ok=types.filter(function(t){return t!=='reading'||(w.reading&&w.reading!==w.word);});
+    if(!ok.length)ok=['meaning'];
+    var t=ok[Math.floor(Math.random()*ok.length)];
+    if(field(w,t))qs.push(makeQuestion(w,t));
+  });
+  if(!qs.length){alert('출제할 단어가 없습니다.');return;}
+  session={qs:qs,i:0,results:[]};
+  show('quiz');renderQ();
+}
+$('startBtn').onclick=function(){
+  var list=pickWords(+$('optCount').value,$('optScope').value,$('optPos').value);
+  if(!list.length){alert('조건에 맞는 단어가 없습니다. 출제 범위를 바꿔 보세요.');return;}
+  startQuiz(list);
+};
+var PROMPTS={meaning:'뜻을 고르세요',reading:'읽는 법을 고르세요',reverse:'알맞은 단어를 고르세요'};
+function renderQ(){
+  var q=session.qs[session.i];
+  $('bar').style.width=(session.i/session.qs.length*100)+'%';
+  $('qCount').textContent=(session.i+1)+' / '+session.qs.length;
+  $('qPrompt').textContent=PROMPTS[q.type];
+  $('qWord').textContent=q.type==='reverse'?q.w.meaning:q.w.word;
+  $('qWord').lang=q.type==='reverse'?'ko':'ja';
+  $('qSub').textContent='';
+  $('speakBtn').classList.toggle('hidden',q.type==='reverse');
+  $('feedback').classList.add('hidden');
+  $('nextBtn').classList.add('hidden');
+  $('choices').innerHTML='';
+  q.choices.forEach(function(c){
+    var b=document.createElement('button');b.className='choice';b.textContent=c;
+    if(q.type!=='meaning')b.lang='ja';
+    b.onclick=function(){answer(b,c);};
+    $('choices').appendChild(b);
+  });
+  if($('optTts').checked&&q.type!=='reverse')speak(q.w.reading||q.w.word);
+}
+function answer(btn,c){
+  var q=session.qs[session.i];
+  if(q.done)return;q.done=true;
+  var ok=c===q.answer;
+  [].forEach.call($('choices').children,function(b){
+    b.disabled=true;
+    if(b.textContent===q.answer)b.classList.add('ok');
+  });
+  if(!ok)btn.classList.add('ng');
+  record(q.w,ok);
+  session.results.push({w:q.w,ok:ok});
+  if(q.type!=='reverse')$('qSub').textContent=q.w.reading&&q.w.reading!==q.w.word?q.w.reading:'';
+  var w=q.w,h='<b lang="ja">'+esc(w.word)+'</b>'+(w.reading?' <span lang="ja">【'+esc(w.reading)+'】</span>':'')+
+    (w.pos?' <span class="muted">'+esc(w.pos)+'</span>':'')+'<div>'+esc(w.meaning)+'</div>';
+  if(w.example)h+='<div style="margin-top:6px" lang="ja">'+esc(w.example)+'</div>';
+  if(w.exampleKo)h+='<div class="muted">'+esc(w.exampleKo)+'</div>';
+  $('feedback').innerHTML=(ok?'<b style="color:var(--ok)">정답!</b> ':'<b style="color:var(--ng)">오답</b> ')+'<div style="margin-top:6px">'+h+'</div>';
+  $('feedback').classList.remove('hidden');
+  $('nextBtn').classList.remove('hidden');
+  $('nextBtn').focus();
+}
+function record(w,ok){
+  var r=prog[w.word]||{box:0,due:0,right:0,wrong:0};
+  if(ok){r.right++;r.box=Math.min(r.box+1,INTERVALS.length-1);}
+  else{r.wrong++;r.box=0;}
+  r.due=Date.now()+INTERVALS[r.box]*DAY;
+  prog[w.word]=r;save(KEY_PROG,prog);
+}
+$('nextBtn').onclick=function(){
+  session.i++;
+  if(session.i>=session.qs.length)finish();else renderQ();
+};
+$('quitBtn').onclick=function(){if(session.results.length)finish();else{session=null;show('home');}};
+$('speakBtn').onclick=function(){var q=session.qs[session.i];speak(q.w.reading||q.w.word);};
+function speak(t){
+  if(!('speechSynthesis' in window))return;
+  speechSynthesis.cancel();
+  var u=new SpeechSynthesisUtterance(t);u.lang='ja-JP';u.rate=.9;
+  speechSynthesis.speak(u);
+}
+function finish(){
+  var r=session.results,n=r.filter(function(x){return x.ok;}).length;
+  $('resultSummary').textContent=r.length+'문제 중 '+n+'개 정답 ('+Math.round(n/r.length*100)+'%)';
+  $('resultTable').innerHTML='<tr><th></th><th>단어</th><th>읽기</th><th>뜻</th></tr>'+r.map(function(x){
+    return '<tr><td>'+(x.ok?'⭕':'❌')+'</td><td lang="ja">'+esc(x.w.word)+'</td><td lang="ja">'+esc(x.w.reading)+'</td><td>'+esc(x.w.meaning)+'</td></tr>';
+  }).join('');
+  var wrong=r.filter(function(x){return !x.ok;}).map(function(x){return x.w;});
+  $('retryWrongBtn').classList.toggle('hidden',!wrong.length);
+  $('retryWrongBtn').onclick=function(){startQuiz(shuffle(wrong));};
+  session=null;show('result');
+}
+$('homeBtn').onclick=function(){show('home');};
+
+/* ---------- 오답 노트 ---------- */
+function wrongList(){
+  return words.filter(function(w){var r=p(w);return r&&r.wrong>0;})
+    .sort(function(a,b){return p(b).wrong-p(a).wrong||p(a).box-p(b).box;});
+}
+function renderWrong(){
+  var l=wrongList();
+  $('wrongQuizBtn').disabled=!l.length||words.length<4;
+  $('wrongTable').innerHTML=l.length?'<tr><th>단어</th><th>읽기</th><th>뜻</th><th>틀림</th></tr>'+l.map(function(w){
+    return '<tr><td lang="ja">'+esc(w.word)+'</td><td lang="ja">'+esc(w.reading)+'</td><td>'+esc(w.meaning)+'</td><td>'+p(w).wrong+'</td></tr>';
+  }).join(''):'<tr><td class="muted">아직 틀린 단어가 없습니다.</td></tr>';
+}
+$('wrongQuizBtn').onclick=function(){startQuiz(wrongList().slice(0,+$('optCount').value));};
+
+/* ---------- 데이터 불러오기 ---------- */
+function parseCSV(text){
+  var delim=text.indexOf('\t')>=0&&text.split('\n')[0].indexOf(',')<0?'\t':',';
+  var rows=[],row=[],cur='',q=false;
+  for(var i=0;i<text.length;i++){
+    var c=text[i];
+    if(q){if(c==='"'){if(text[i+1]==='"'){cur+='"';i++;}else q=false;}else cur+=c;}
+    else if(c==='"')q=true;
+    else if(c===delim){row.push(cur);cur='';}
+    else if(c==='\n'||c==='\r'){if(c==='\r'&&text[i+1]==='\n')i++;row.push(cur);rows.push(row);row=[];cur='';}
+    else cur+=c;
+  }
+  if(cur||row.length){row.push(cur);rows.push(row);}
+  return rows.map(function(r){return r.map(function(s){return s.trim();});})
+    .filter(function(r){return r[0]&&r[2];})
+    .filter(function(r,i){return !(i===0&&/^(단어|word|漢字|표제어)/i.test(r[0]));})
+    .map(function(r){return {word:r[0],reading:r[1]||'',meaning:r[2],pos:r[3]||'',example:r[4]||'',exampleKo:r[5]||''};});
+}
+function parseAny(text){
+  text=text.replace(/^﻿/,'').trim();
+  if(text[0]==='['){
+    var a=JSON.parse(text);
+    return a.filter(function(x){return x&&x.word&&x.meaning;}).map(function(x){
+      return {word:String(x.word),reading:String(x.reading||''),meaning:String(x.meaning),pos:String(x.pos||''),example:String(x.example||''),exampleKo:String(x.exampleKo||'')};
+    });
+  }
+  return parseCSV(text);
+}
+function importWords(list){
+  if(!list.length){msg('불러올 단어를 찾지 못했습니다. 형식을 확인해 주세요.',true);return;}
+  var mode=document.querySelector('input[name=mode]:checked').value;
+  var map={};
+  if(mode==='merge')words.forEach(function(w){map[w.word]=w;});
+  var before=Object.keys(map).length;
+  list.forEach(function(w){map[w.word]=w;});
+  var next=Object.keys(map).map(function(k){return map[k];});
+  if(!save(KEY_WORDS,next)){msg('저장에 실패했습니다. 브라우저 저장 공간을 확인해 주세요.',true);return;}
+  words=next;
+  msg(list.length+'개를 읽어서 '+(mode==='merge'?(next.length-before)+'개가 새로 추가되었습니다. ':'')+'지금 저장된 단어는 모두 '+next.length+'개입니다.');
+  renderDataInfo();
+}
+function msg(t,err){$('dataMsg').textContent=t;$('dataMsg').style.color=err?'var(--ng)':'var(--ok)';}
+$('fileInput').onchange=function(e){
+  var f=e.target.files[0];if(!f)return;
+  var rd=new FileReader();
+  rd.onload=function(){try{importWords(parseAny(rd.result));}catch(err){msg('파일을 읽지 못했습니다: '+err.message,true);}e.target.value='';};
+  rd.readAsText(f,'utf-8');
+};
+$('pasteBtn').onclick=function(){try{importWords(parseAny($('pasteArea').value));}catch(err){msg('읽지 못했습니다: '+err.message,true);}};
+$('sampleBtn').onclick=function(){
+  $('pasteArea').value=['단어,읽기,뜻,품사,예문,예문뜻',
+    '把握,はあく,파악,명사,状況を把握する,상황을 파악하다',
+    '斡旋,あっせん,알선,명사,仕事を斡旋する,일자리를 알선하다',
+    '懸念,けねん,염려,명사,景気の悪化が懸念される,경기 악화가 염려된다',
+    '妥協,だきょう,타협,명사,妥協の余地はない,타협의 여지는 없다',
+    '潔い,いさぎよい,깨끗하다,い형용사,潔く負けを認める,깨끗이 패배를 인정하다',
+    '赴く,おもむく,향하다,동사,現地に赴く,현지로 향하다'].join('\n');
+  msg('예시를 넣었습니다. "붙여 넣은 내용 불러오기"를 누르면 저장됩니다.');
+};
+function renderDataInfo(){$('dataInfo').textContent='저장된 단어 '+words.length+'개 · 학습 기록 '+Object.keys(prog).length+'개';}
+$('exportBtn').onclick=function(){
+  var blob=new Blob([JSON.stringify({words:words,progress:prog})],{type:'application/json'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='jlpt_n1_backup_'+new Date().toISOString().slice(0,10)+'.json';a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+};
+$('restoreInput').onchange=function(e){
+  var f=e.target.files[0];if(!f)return;
+  var rd=new FileReader();
+  rd.onload=function(){
+    try{var d=JSON.parse(rd.result);if(!Array.isArray(d.words))throw new Error('백업 파일 형식이 아닙니다');
+      words=d.words;prog=d.progress||{};save(KEY_WORDS,words);save(KEY_PROG,prog);msg('백업을 복원했습니다.');renderDataInfo();
+    }catch(err){msg('복원 실패: '+err.message,true);}
+    e.target.value='';
+  };
+  rd.readAsText(f,'utf-8');
+};
+$('resetProgressBtn').onclick=function(){if(confirm('학습 기록(정답/오답, 복습 일정)을 모두 지울까요?')){prog={};save(KEY_PROG,prog);renderDataInfo();msg('학습 기록을 초기화했습니다.');}};
+$('clearAllBtn').onclick=function(){if(confirm('단어와 학습 기록을 모두 지울까요?')){words=[];prog={};save(KEY_WORDS,words);save(KEY_PROG,prog);renderDataInfo();msg('모두 삭제했습니다.');}};
+
+show('home');
+})();
+</script>
+</body></html>
