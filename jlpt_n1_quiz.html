@@ -77,6 +77,8 @@ td,th{padding:8px 4px;border-bottom:1px solid var(--line);text-align:left;vertic
         <option value="new">새 단어만</option>
         <option value="all">전체 무작위</option>
       </select>
+      <span>품사</span>
+      <select id="optPos"><option value="">전체</option></select>
     </div>
     <label class="opt"><input type="checkbox" class="optType" value="meaning" checked> 한자 → 뜻 고르기</label>
     <label class="opt"><input type="checkbox" class="optType" value="reading" checked> 한자 → 읽는 법 고르기</label>
@@ -214,18 +216,23 @@ function renderHome(){
   $('stats').innerHTML=items.map(function(i){return '<div class="stat"><span class="muted">'+i[0]+'</span><b>'+i[1]+'</b></div>';}).join('');
   $('homeMsg').textContent=words.length<4?'단어가 4개 이상 필요합니다. "단어 불러오기"에서 단어 파일을 먼저 불러와 주세요.':'';
   $('startBtn').disabled=words.length<4;
+  var sel=$('optPos'),cur=sel.value,cnt={};
+  words.forEach(function(w){if(w.pos)cnt[w.pos]=(cnt[w.pos]||0)+1;});
+  sel.innerHTML='<option value="">전체</option>'+Object.keys(cnt).map(function(k){return '<option value="'+esc(k)+'">'+esc(k)+' ('+cnt[k]+')</option>';}).join('');
+  if(cnt[cur])sel.value=cur;
 }
 
 /* ---------- 문제 만들기 ---------- */
-function pickWords(n,scope){
+function pickWords(n,scope,pos){
   var now=Date.now();
-  var fresh=words.filter(function(w){return !p(w);});
+  var base=pos?words.filter(function(w){return w.pos===pos;}):words;
+  var fresh=base.filter(function(w){return !p(w);});
   if(scope==='new')return shuffle(fresh).slice(0,n);
-  if(scope==='all')return shuffle(words.slice()).slice(0,n);
+  if(scope==='all')return shuffle(base.slice()).slice(0,n);
   // 복습할 단어 → 새 단어 → 나머지 순서
-  var due=shuffle(words.filter(function(w){return isDue(w,now);}));
+  var due=shuffle(base.filter(function(w){return isDue(w,now);}));
   due.sort(function(a,b){return p(a).box-p(b).box;});
-  var rest=shuffle(words.filter(function(w){return p(w)&&!isDue(w,now);}));
+  var rest=shuffle(base.filter(function(w){return p(w)&&!isDue(w,now);}));
   return due.concat(shuffle(fresh),rest).slice(0,n);
 }
 function field(w,type){return type==='meaning'?w.meaning:type==='reading'?w.reading:w.word;}
@@ -264,7 +271,7 @@ function startQuiz(list){
   show('quiz');renderQ();
 }
 $('startBtn').onclick=function(){
-  var list=pickWords(+$('optCount').value,$('optScope').value);
+  var list=pickWords(+$('optCount').value,$('optScope').value,$('optPos').value);
   if(!list.length){alert('조건에 맞는 단어가 없습니다. 출제 범위를 바꿔 보세요.');return;}
   startQuiz(list);
 };
